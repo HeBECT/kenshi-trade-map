@@ -1,0 +1,98 @@
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║      🎮 KENSHI TRADE MAP - START HERE! 🗺️               ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════
+🚀 QUICK START
+═══════════════════════════════════════════════════════════
+
+👉 DOUBLE-CLICK THE FILE: KenshiTradeMap.exe
+
+That's it! The application will start.
+
+If the application does not launch, first run the file:
+rustup-init.exe
+
+═══════════════════════════════════════════════════════════
+📋 WHAT'S NEXT?
+═══════════════════════════════════════════════════════════
+
+1. On first launch:
+   • Click "📁 Load Map"
+   • Select a Kenshi map image
+
+2. Add cities:
+   • Click "🏙️ Add City"
+   • Click on the map
+   • Enter a name
+
+3. Create routes:
+   • Right-click a city
+   • Select the destination city
+   • Choose a color
+   • Click "✓ Create"
+
+4. Add goods:
+   • Click on a route
+   • Click "+ Add Product"
+   • Fill in:
+     - Product name
+     - Buy Markup %
+     - Sell Markup %
+
+5. Save your data:
+   • Click "💾 Save"
+   • Choose a location and file name
+
+═══════════════════════════════════════════════════════════
+🎯 MAIN FEATURES
+═══════════════════════════════════════════════════════════
+
+✅ Interactive Kenshi map
+✅ Create cities anywhere
+✅ Unlimited number of routes
+✅ Custom colors for each route
+✅ Two markup fields (buy and sell)
+✅ Automatic offset for duplicate routes
+✅ Smooth zoom in and out
+✅ Save and load data
+✅ Dark theme interface
+
+═══════════════════════════════════════════════════════════
+🎮 CONTROLS
+═══════════════════════════════════════════════════════════
+
+Mouse:
+  • Mouse wheel - zoom in/out
+  • LMB + drag - move the map
+  • RMB on city - create a route
+  • LMB on route - open trade panel
+
+Keyboard:
+  • Esc - cancel / close panel
+
+═══════════════════════════════════════════════════════════
+📚 DOCUMENTATION
+═══════════════════════════════════════════════════════════
+
+Detailed instructions:
+  📄 STARTING_THE_APPLICATION.txt - Full launch guide
+  📄 README.md - Full project documentation
+  📄 CHANGES_v3.1.txt - New features in version 3.1
+
+═══════════════════════════════════════════════════════════
+💡 TIP
+═══════════════════════════════════════════════════════════
+
+Create a desktop shortcut:
+  1. Right-click KenshiTradeMap.exe
+  2. "Send to" → "Desktop (create shortcut)"
+  3. Done!
+
+═══════════════════════════════════════════════════════════
+
+🎮 Enjoy trading in Kenshi! 🗺️
+
+═══════════════════════════════════════════════════════════

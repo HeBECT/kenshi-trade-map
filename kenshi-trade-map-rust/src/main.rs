@@ -548,6 +548,10 @@ struct KenshiTradeMap {
     
     // Watermark
     watermark_texture: Option<egui::TextureHandle>,
+    
+    // ID counters to prevent ID reuse after deletion
+    next_city_id: usize,
+    next_route_id: usize,
 }
 
 impl Default for KenshiTradeMap {
@@ -579,6 +583,8 @@ impl Default for KenshiTradeMap {
             theme: Theme::Dark,
             show_top_panel: true,
             watermark_texture: None,
+            next_city_id: 0,
+            next_route_id: 0,
         }
     }
 }
@@ -1414,36 +1420,16 @@ impl KenshiTradeMap {
             painter.rect_filled(rect, sharp_rounding, Color32::from_white_alpha(25));
         }
         
-        // Рисуем текст с градиентом (как у заголовка Kenshi Trade Map)
-        // Градиент от синего к розовому
-        let gradient_start = Color32::from_rgb(88, 101, 242);  // Discord Blue
-        let gradient_end = Color32::from_rgb(255, 115, 250);   // Neon Pink
+        // Рисуем текст ЧЁРНЫМ цветом (вместо градиента)
+        let text_color = Color32::BLACK;
         
-        let char_count = text.chars().count() as f32;
-        let text_width = ui.fonts(|f| f.layout_no_wrap(text.to_string(), egui::FontId::monospace(font_size), Color32::WHITE).size().x);
-        let mut x_offset = rect.center().x - text_width / 2.0;
-        
-        for (i, ch) in text.chars().enumerate() {
-            let t = i as f32 / char_count.max(1.0);
-            let text_color = Color32::from_rgb(
-                (gradient_start.r() as f32 * (1.0 - t) + gradient_end.r() as f32 * t) as u8,
-                (gradient_start.g() as f32 * (1.0 - t) + gradient_end.g() as f32 * t) as u8,
-                (gradient_start.b() as f32 * (1.0 - t) + gradient_end.b() as f32 * t) as u8,
-            );
-            
-            let char_str = ch.to_string();
-            let char_width = ui.fonts(|f| f.layout_no_wrap(char_str.clone(), egui::FontId::monospace(font_size), text_color).size().x);
-            
-            painter.text(
-                Pos2::new(x_offset, rect.center().y),
-                egui::Align2::LEFT_CENTER,
-                &char_str,
-                egui::FontId::monospace(font_size),
-                text_color,
-            );
-            
-            x_offset += char_width;
-        }
+        painter.text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            text,
+            egui::FontId::monospace(font_size),
+            text_color,
+        );
         
         response
     }
@@ -1652,7 +1638,7 @@ impl KenshiTradeMap {
             }
 
             let route = TradeRoute {
-                id: self.routes.len(),
+                id: self.next_route_id,
                 name,
                 start_point,
                 end_point,
@@ -1665,6 +1651,7 @@ impl KenshiTradeMap {
             };
 
             self.routes.push(route);
+            self.next_route_id += 1;
         }
         self.cancel_route_creation();
     }
@@ -1680,19 +1667,20 @@ impl KenshiTradeMap {
     fn confirm_city_creation(&mut self) {
         if let Some(pos) = self.pending_city_pos {
             let name = if self.city_name_input.is_empty() {
-                format!("Город {}", self.cities.len() + 1)
+                format!("Город {}", self.next_city_id + 1)
             } else {
                 self.city_name_input.clone()
             };
 
             let city = City {
-                id: self.cities.len(),
+                id: self.next_city_id,
                 name,
                 x: pos.x,
                 y: pos.y,
             };
 
             self.cities.push(city);
+            self.next_city_id += 1;
         }
         self.cancel_city_creation();
     }
@@ -1755,6 +1743,8 @@ impl KenshiTradeMap {
         ui.heading(egui::RichText::new(texts.trade_route).size(20.0).strong().color(colors.primary));
         ui.add_space(8.0);
         
+        let mut should_delete_route = false;
+        
         if let Some(route_id) = self.active_route_id {
             if let Some(route) = self.routes.iter_mut().find(|r| r.id == route_id) {
                 // Route info card
@@ -1770,9 +1760,13 @@ impl KenshiTradeMap {
                 ui.separator();
                 ui.add_space(12.0);
                 
-                egui::ScrollArea::vertical().show(ui, |ui| {
+                // ScrollArea теперь охватывает ВСЁ содержимое панели (товары + кнопки)
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
                     let mut to_remove = None;
                     
+                    // Список товаров
                     for (idx, item) in route.items.iter_mut().enumerate() {
                         ui.group(|ui| {
                             ui.set_min_width(ui.available_width() - 20.0);
@@ -1808,7 +1802,7 @@ impl KenshiTradeMap {
                                 ui.checkbox(&mut item.sell, egui::RichText::new(texts.sell).size(13.0));
                                 
                                 ui.add_space(ui.available_width() - 40.0);
-                                if ui.add(egui::Button::new(egui::RichText::new("✖").size(14.0).color(Color32::WHITE))
+                                if ui.add(egui::Button::new(egui::RichText::new("X").size(14.0).color(Color32::WHITE))
                                     .fill(colors.danger)
                                     .rounding(Rounding::same(6.0))
                                     .min_size(Vec2::new(32.0, 32.0)))
@@ -1825,38 +1819,46 @@ impl KenshiTradeMap {
                     if let Some(idx) = to_remove {
                         route.items.remove(idx);
                     }
+                    
+                    // Кнопки теперь ВНУТРИ ScrollArea
+                    ui.add_space(12.0);
+                    ui.separator();
+                    ui.add_space(12.0);
+                    
+                    if ui.add(egui::Button::new(egui::RichText::new(texts.add_item).size(14.0).color(Color32::WHITE))
+                        .fill(colors.success)
+                        .rounding(Rounding::same(8.0))
+                        .min_size(Vec2::new(ui.available_width(), 40.0)))
+                        .clicked() {
+                        route.items.push(TradeItem {
+                            name: String::new(),
+                            buy_markup: 0.0,
+                            sell_markup: 0.0,
+                            hold: false,
+                            sell: false,
+                        });
+                    }
+                    
+                    ui.add_space(8.0);
+                    
+                    if ui.add(egui::Button::new(egui::RichText::new(texts.delete_route).size(14.0).color(Color32::WHITE))
+                        .fill(colors.danger)
+                        .rounding(Rounding::same(8.0))
+                        .min_size(Vec2::new(ui.available_width(), 40.0)))
+                        .clicked() {
+                        should_delete_route = true;
+                    }
                 });
-                
-                ui.add_space(12.0);
-                ui.separator();
-                ui.add_space(12.0);
-                
-                if ui.add(egui::Button::new(egui::RichText::new(texts.add_item).size(14.0).color(Color32::WHITE))
-                    .fill(colors.success)
-                    .rounding(Rounding::same(8.0))
-                    .min_size(Vec2::new(ui.available_width(), 40.0)))
-                    .clicked() {
-                    route.items.push(TradeItem {
-                        name: String::new(),
-                        buy_markup: 0.0,
-                        sell_markup: 0.0,
-                        hold: false,
-                        sell: false,
-                    });
-                }
-                
-                ui.add_space(8.0);
-                
-                if ui.add(egui::Button::new(egui::RichText::new(texts.delete_route).size(14.0).color(Color32::WHITE))
-                    .fill(colors.danger)
-                    .rounding(Rounding::same(8.0))
-                    .min_size(Vec2::new(ui.available_width(), 40.0)))
-                    .clicked() {
-                    self.routes.retain(|r| r.id != route_id);
-                    self.show_trade_panel = false;
-                    self.active_route_id = None;
-                    return;
-                }
+            }
+        }
+        
+        // Удаляем маршрут после выхода из заимствования
+        if should_delete_route {
+            if let Some(route_id) = self.active_route_id {
+                self.routes.retain(|r| r.id != route_id);
+                self.show_trade_panel = false;
+                self.active_route_id = None;
+                return;
             }
         }
         
@@ -1973,6 +1975,10 @@ impl KenshiTradeMap {
                         }
                     }
                     self.routes = data.routes;
+                    
+                    // Восстанавливаем счётчики ID на основе максимальных ID + 1
+                    self.next_city_id = self.cities.iter().map(|c| c.id).max().unwrap_or(0) + 1;
+                    self.next_route_id = self.routes.iter().map(|r| r.id).max().unwrap_or(0) + 1;
                 }
             }
         }
